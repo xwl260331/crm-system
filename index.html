@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户信息管理系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root{--bg-p:#0c0e14;--bg-s:#13161f;--bg-t:#1a1e2b;--bg-e:#212636;--bd:#2a2f42;--bd-l:#353b52;--t1:#e8eaf0;--t2:#8b91a8;--t3:#555b73;--ac:#f59e0b;--ac-h:#fbbf24;--ac-m:rgba(245,158,11,0.12);--dg:#ef4444;--dg-m:rgba(239,68,68,0.12)}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Outfit',sans-serif;background:var(--bg-p);color:var(--t1);min-height:100vh;overflow:hidden}
+        ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+        select option{background:var(--bg-e);color:var(--t1)}
+
+        /* 登录页 */
+        #loginPage{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:var(--bg-p);background-image:radial-gradient(ellipse at 30% 40%,rgba(245,158,11,0.06) 0%,transparent 50%),radial-gradient(ellipse at 70% 70%,rgba(99,102,241,0.04) 0%,transparent 50%)}
+        #loginPage.hidden{display:none}
+        .login-card{background:var(--bg-s);border:1px solid var(--bd);border-radius:20px;padding:48px 40px;width:420px;max-width:90vw;box-shadow:0 20px 80px rgba(0,0,0,0.5);animation:lcIn .6s cubic-bezier(.4,0,.2,1) forwards}
+        @keyframes lcIn{from{opacity:0;transform:translateY(30px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+        .li{width:100%;background:var(--bg-e);border:1.5px solid var(--bd);border-radius:12px;padding:14px 16px 14px 48px;font-size:15px;color:var(--t1);outline:none;transition:border-color .2s,box-shadow .2s;font-family:inherit}
+        .li::placeholder{color:var(--t3)}.li:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(245,158,11,0.1)}.li.err{border-color:var(--dg);box-shadow:0 0 0 3px rgba(239,68,68,0.1)}
+        .lb{width:100%;padding:14px;border:none;border-radius:12px;font-size:15px;font-weight:700;background:var(--ac);color:#000;cursor:pointer;transition:all .2s;font-family:inherit}
+        .lb:hover{background:var(--ac-h);transform:translateY(-1px);box-shadow:0 4px 20px rgba(245,158,11,0.3)}
+        .le{color:#fca5a5;font-size:13px;margin-top:6px;min-height:20px;animation:shake .3s}
+        @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+        .ldot{position:absolute;border-radius:50%;background:var(--ac);opacity:.04;animation:fd 15s infinite ease-in-out}
+        @keyframes fd{0%,100%{transform:translate(0,0)}33%{transform:translate(20px,-30px)}66%{transform:translate(-15px,20px)}}
+
+        /* 主系统 */
+        #mainSystem{display:none}#mainSystem.active{display:flex}
+        .sys-bg{background-image:radial-gradient(ellipse at 15% 50%,rgba(245,158,11,0.04) 0%,transparent 50%),radial-gradient(ellipse at 85% 20%,rgba(99,102,241,0.03) 0%,transparent 50%)}
+        .tr{position:relative;transition:background .15s}.tr::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ac);border-radius:0 2px 2px 0;transform:scaleY(0);transition:transform .2s}
+        .tr:hover{background:var(--bg-t)}.tr:hover::before{transform:scaleY(1)}
+        #detailPanel{transition:transform .35s cubic-bezier(.4,0,.2,1)}#detailPanel.open{transform:translateX(0)!important}
+        #overlay.active{opacity:1!important;pointer-events:auto!important}
+        #customerModal.active{opacity:1!important;pointer-events:auto!important}#customerModal.active #cmBox{transform:scale(1)!important}
+        #cmBox{transition:transform .25s cubic-bezier(.4,0,.2,1)}
+        #changePwdModal.active{opacity:1!important;pointer-events:auto!important}#changePwdModal.active #cpBox{transform:scale(1)!important}
+        #cpBox{transition:transform .25s cubic-bezier(.4,0,.2,1)}
+        .toast-item{animation:ti .35s cubic-bezier(.4,0,.2,1) forwards}.toast-item.out{animation:to .3s cubic-bezier(.4,0,.2,1) forwards}
+        @keyframes ti{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes to{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(60px)}}
+        .tl-line{position:absolute;left:7px;top:20px;bottom:0;width:2px;background:var(--bd)}
+        .tl-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--bd-l);background:var(--bg-s);flex-shrink:0;position:relative;z-index:1;transition:all .2s}
+        .tl-item:hover .tl-dot{border-color:var(--ac);box-shadow:0 0 8px rgba(245,158,11,0.3)}
+        .ffw{max-height:0;overflow:hidden;opacity:0;transition:max-height .4s cubic-bezier(.4,0,.2,1),opacity .3s,margin .3s;margin-top:0}
+        .ffw.open{max-height:600px;opacity:1;margin-top:16px}
+        .tag{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:9999px;font-size:12px;font-weight:500;white-space:nowrap;border:1px solid transparent}
+        .tag-a{background:rgba(245,158,11,.12);color:#fbbf24;border-color:rgba(245,158,11,.25)}
+        .tag-b{background:rgba(59,130,246,.12);color:#60a5fa;border-color:rgba(59,130,246,.25)}
+        .tag-c{background:rgba(34,197,94,.12);color:#4ade80;border-color:rgba(34,197,94,.25)}
+        .tag-d{background:rgba(107,114,128,.12);color:#9ca3af;border-color:rgba(107,114,128,.25)}
+        .tag-需求沟通{background:rgba(6,182,212,.12);color:#22d3ee}.tag-方案报价{background:rgba(168,85,247,.12);color:#c084fc}
+        .tag-合同签订{background:rgba(245,158,11,.12);color:#fbbf24}.tag-执行中{background:rgba(59,130,246,.12);color:#60a5fa}
+        .tag-已完成{background:rgba(34,197,94,.12);color:#4ade80}.tag-暂缓{background:rgba(107,114,128,.12);color:#9ca3af}
+        .tag-未跟进{background:rgba(107,114,128,.08);color:#6b7280}
+        .cbar{display:inline-flex;align-items:center;gap:8px;background:var(--dg-m);padding:4px 12px;border-radius:8px;font-size:13px;color:#fca5a5;animation:fi .15s}
+        @keyframes fi{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+        .sc{transition:transform .2s,box-shadow .2s}.sc:hover{transform:translateY(-2px);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+        .ab{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:none;cursor:pointer;font-size:13px;transition:all .15s;background:transparent;color:var(--t3)}
+        .ab:hover{background:var(--bg-e);color:var(--t1)}.ab.dg:hover{background:var(--dg-m);color:var(--dg)}
+        .ab.sm{width:26px;height:26px;font-size:11px}
+        .ir{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--bd)}.ir:last-child{border-bottom:none}
+        .il{font-size:13px;color:var(--t3);flex-shrink:0;min-width:72px}.iv{font-size:14px;color:var(--t1);text-align:right;word-break:break-all}
+        .tb{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;border:1px solid var(--bd);background:var(--bg-e);color:var(--t2);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+        .tb:hover{border-color:var(--ac);color:var(--ac);background:var(--ac-m)}
+        .hb{padding:6px 14px;border-radius:8px;font-size:13px;font-weight:500;border:1px solid var(--bd);background:transparent;color:var(--t3);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+        .hb:hover{border-color:var(--bd-l);color:var(--t2);background:var(--bg-t)}.hb.lo:hover{border-color:rgba(239,68,68,.3);color:#fca5a5;background:var(--dg-m)}
+        .bp{position:fixed;border-radius:50%;pointer-events:none;background:var(--ac);opacity:.03;animation:fp 20s infinite ease-in-out}
+        @keyframes fp{0%,100%{transform:translate(0,0) scale(1)}25%{transform:translate(30px,-40px) scale(1.1)}50%{transform:translate(-20px,20px) scale(.9)}75%{transform:translate(15px,35px) scale(1.05)}}
+        #importFileInput{display:none}
+        /* 联系人卡片 */
+        .ct-card{background:var(--bg-t);border:1px solid var(--bd);border-radius:12px;padding:16px;transition:border-color .2s}
+        .ct-card:hover{border-color:var(--bd-l)}.ct-card.main{border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.03)}
+        .ct-star{color:var(--ac);font-size:11px}
+        .fi{width:100%;background:var(--bg-e);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--t1);outline:none;transition:border-color .2s;font-family:inherit}
+        .fi:focus{border-color:var(--ac)}.fi::placeholder{color:var(--t3)}
+        .fi-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23555b73' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}
+        @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+    </style>
+</head>
+<body>
+
+<!-- 登录页 -->
+<div id="loginPage">
+    <div class="ldot" style="width:350px;height:350px;top:10%;left:5%"></div>
+    <div class="ldot" style="width:250px;height:250px;bottom:15%;right:8%;animation-delay:-5s"></div>
+    <div class="ldot" style="width:180px;height:180px;top:50%;left:60%;animation-delay:-10s"></div>
+    <div class="login-card">
+        <div class="text-center mb-10">
+            <div class="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center" style="background:var(--ac-m)"><i class="fa-solid fa-shield-halved text-2xl text-[--ac]"></i></div>
+            <h1 class="text-2xl font-bold text-white mb-2">客户管理系统</h1>
+            <p class="text-sm" style="color:var(--t3)">请输入账号密码登录</p>
+        </div>
+        <form id="loginForm" onsubmit="handleLogin(event)" autocomplete="off">
+            <div class="mb-4 relative"><i class="fa-solid fa-user absolute left-4 top-1/2 -translate-y-1/2 text-sm" style="color:var(--t3)"></i><input id="loginUser" type="text" class="li" placeholder="请输入账号" autofocus></div>
+            <div class="mb-2 relative"><i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-sm" style="color:var(--t3)"></i><input id="loginPwd" type="password" class="li" placeholder="请输入密码"><button type="button" onclick="togglePwdVis('loginPwd',this)" class="absolute right-4 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-sm" style="color:var(--t3)"><i class="fa-solid fa-eye"></i></button></div>
+            <div id="loginError" class="le">&nbsp;</div>
+            <button type="submit" class="lb mt-2">登 录</button>
+        </form>
+        <div class="mt-6 pt-5 border-t" style="border-color:var(--bd)">
+            <p class="text-xs text-center" style="color:var(--t3)">默认账号 <span style="color:var(--t2)" class="font-medium">admin</span> &nbsp;密码 <span style="color:var(--t2)" class="font-medium">admin123</span></p>
+            <p class="text-xs text-center mt-1.5" style="color:var(--t3)">登录后可在右上角修改密码</p>
+        </div>
+    </div>
+</div>
+
+<!-- 主系统 -->
+<div id="mainSystem" class="h-screen overflow-hidden">
+    <div class="bp" style="width:300px;height:300px;top:10%;left:5%;animation-delay:-3s"></div>
+    <div class="bp" style="width:200px;height:200px;top:60%;right:10%;animation-delay:-8s"></div>
+    <div class="bp" style="width:250px;height:250px;bottom:5%;left:40%;animation-delay:-13s"></div>
+    <div id="toastContainer" class="fixed top-6 right-6 z-[9999] flex flex-col gap-3" style="pointer-events:none"></div>
+    <div class="flex h-full overflow-hidden">
+        <main class="flex-1 flex flex-col overflow-hidden sys-bg">
+            <header class="px-8 pt-6 pb-2 flex items-start justify-between flex-wrap gap-4">
+                <div>
+                    <div class="flex items-center gap-3 mb-1"><div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:var(--ac-m)"><i class="fa-solid fa-address-book text-sm" style="color:var(--ac)"></i></div><h1 class="text-2xl font-bold text-white tracking-tight">客户管理</h1></div>
+                    <p class="text-sm ml-12" style="color:var(--t3)">管理客户信息与项目跟进进度</p>
+                </div>
+                <div class="flex items-center gap-3 flex-wrap">
+                    <div id="statsBar" class="flex gap-3"></div>
+                    <div class="flex gap-2 ml-2">
+                        <button onclick="openChangePwdModal()" class="hb"><i class="fa-solid fa-key text-xs"></i> 修改密码</button>
+                        <button onclick="handleLogout()" class="hb lo"><i class="fa-solid fa-right-from-bracket text-xs"></i> 退出登录</button>
+                    </div>
+                </div>
+            </header>
+            <div class="px-8 py-3 flex items-center gap-3 flex-wrap">
+                <div class="relative flex-1 min-w-[200px]"><i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-sm" style="color:var(--t3)"></i><input id="searchInput" type="text" placeholder="搜索公司、联系人姓名、电话..." class="w-full bg-[--bg-e] border rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none transition-colors" style="border-color:var(--bd);color:var(--t1)" onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='var(--bd)'"></div>
+                <select id="filterLevel" class="bg-[--bg-e] border rounded-lg px-4 py-2.5 text-sm cursor-pointer focus:outline-none transition-colors" style="border-color:var(--bd);color:var(--t2)" onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='var(--bd)'"><option value="">全部等级</option><option value="A">A级 · 重要</option><option value="B">B级 · 一般</option><option value="C">C级 · 潜在</option><option value="D">D级 · 休眠</option></select>
+                <select id="filterIndustry" class="bg-[--bg-e] border rounded-lg px-4 py-2.5 text-sm cursor-pointer focus:outline-none transition-colors" style="border-color:var(--bd);color:var(--t2)" onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='var(--bd)'"><option value="">全部行业</option><option value="互联网">互联网</option><option value="金融">金融</option><option value="制造">制造</option><option value="教育">教育</option><option value="医疗">医疗</option><option value="房地产">房地产</option><option value="零售">零售</option></select>
+                <select id="filterStatus" class="bg-[--bg-e] border rounded-lg px-4 py-2.5 text-sm cursor-pointer focus:outline-none transition-colors" style="border-color:var(--bd);color:var(--t2)" onfocus="this.style.borderColor='var(--ac)'" onblur="this.style.borderColor='var(--bd)'"><option value="">全部状态</option><option value="需求沟通">需求沟通</option><option value="方案报价">方案报价</option><option value="合同签订">合同签订</option><option value="执行中">执行中</option><option value="已完成">已完成</option><option value="暂缓">暂缓</option></select>
+                <button onclick="openCustomerModal()" class="font-semibold px-5 py-2.5 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap text-sm" style="background:var(--ac);color:#000" onmouseover="this.style.background='var(--ac-h)'" onmouseout="this.style.background='var(--ac)'"><i class="fa-solid fa-plus text-xs"></i> 添加客户</button>
+            </div>
+            <div class="px-8 pb-3 flex items-center gap-2">
+                <button onclick="exportData()" class="tb"><i class="fa-solid fa-download text-xs"></i> 导出备份</button>
+                <button onclick="document.getElementById('importFileInput').click()" class="tb"><i class="fa-solid fa-upload text-xs"></i> 导入恢复</button>
+                <input type="file" id="importFileInput" accept=".json" onchange="importData(event)">
+                <span class="text-[11px] ml-1" style="color:var(--t3)">导出 JSON 文件可在其他电脑导入恢复</span>
+            </div>
+            <div class="flex-1 overflow-auto px-8 pb-8">
+                <div class="bg-[--bg-s] rounded-xl border overflow-hidden" style="border-color:var(--bd)">
+                    <table class="w-full min-w-[820px]">
+                        <thead><tr class="border-b" style="border-color:var(--bd)">
+                            <th onclick="toggleSort('name')" class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:text-[--t2] select-none" style="color:var(--t3)">客户 <i id="si-name" class="fa-solid fa-sort ml-1 opacity-40 text-[10px]"></i></th>
+                            <th class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style="color:var(--t3)">行业</th>
+                            <th onclick="toggleSort('level')" class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:text-[--t2] select-none" style="color:var(--t3)">等级 <i id="si-level" class="fa-solid fa-sort ml-1 opacity-40 text-[10px]"></i></th>
+                            <th class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style="color:var(--t3)">主联系人</th>
+                            <th onclick="toggleSort('status')" class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:text-[--t2] select-none" style="color:var(--t3)">项目状态 <i id="si-status" class="fa-solid fa-sort ml-1 opacity-40 text-[10px]"></i></th>
+                            <th onclick="toggleSort('updatedAt')" class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:text-[--t2] select-none" style="color:var(--t3)">最近跟进 <i id="si-updatedAt" class="fa-solid fa-sort-down ml-1 opacity-80 text-[10px]"></i></th>
+                            <th class="text-right px-5 py-3.5 text-xs font-semibold uppercase tracking-wider w-[130px]" style="color:var(--t3)">操作</th>
+                        </tr></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                    <div id="emptyState" class="hidden py-20 text-center"><i class="fa-regular fa-folder-open text-4xl mb-4 block" style="color:var(--t3)"></i><p class="text-sm" style="color:var(--t3)">没有找到匹配的客户记录</p></div>
+                </div>
+                <div id="tableFooter" class="mt-3 flex items-center justify-between text-xs px-1" style="color:var(--t3)"></div>
+            </div>
+        </main>
+        <div id="overlay" class="fixed inset-0 bg-black/50 z-40 opacity-0 pointer-events-none transition-opacity duration-300" onclick="closePanel()"></div>
+        <aside id="detailPanel" class="fixed top-0 right-0 h-full w-[520px] max-w-[100vw] bg-[--bg-s] border-l z-50 transform translate-x-full flex flex-col" style="border-color:var(--bd);box-shadow:-8px 0 40px rgba(0,0,0,0.4)">
+            <div class="px-6 py-5 border-b flex items-center justify-between flex-shrink-0" style="border-color:var(--bd)"><h2 id="panelTitle" class="text-lg font-bold text-white truncate"></h2><button onclick="closePanel()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:text-white transition-colors flex-shrink-0" style="color:var(--t3)" onmouseover="this.style.background='var(--bg-e)'" onmouseout="this.style.background='transparent'" aria-label="关闭"><i class="fa-solid fa-xmark"></i></button></div>
+            <div class="flex border-b flex-shrink-0" style="border-color:var(--bd)">
+                <button id="tabInfo" onclick="switchTab('info')" class="flex-1 px-4 py-3 text-sm font-medium transition-colors border-b-2" style="border-color:var(--ac);color:var(--ac)"><i class="fa-solid fa-user mr-1.5 text-xs"></i>客户资料</button>
+                <button id="tabFollow" onclick="switchTab('follow')" class="flex-1 px-4 py-3 text-sm font-medium transition-colors border-b-2 border-transparent hover:text-[--t2]" style="color:var(--t3)"><i class="fa-solid fa-clock-rotate-left mr-1.5 text-xs"></i>项目跟进</button>
+            </div>
+            <div class="flex-1 overflow-y-auto">
+                <div id="infoContent" class="p-6"></div>
+                <div id="followContent" class="p-6 hidden"><div id="currentStatus" class="mb-6"></div><div id="timeline"></div><div id="addFollowArea"></div></div>
+            </div>
+        </aside>
+    </div>
+</div>
+
+<!-- 客户表单模态框 -->
+<div id="customerModal" class="fixed inset-0 z-[60] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="absolute inset-0 bg-black/60" onclick="closeCustomerModal()"></div>
+    <div class="relative bg-[--bg-s] border rounded-2xl w-full max-w-lg mx-4 transform scale-95" id="cmBox" style="border-color:var(--bd);box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+        <div class="px-6 py-5 border-b flex items-center justify-between" style="border-color:var(--bd)"><h3 id="modalTitle" class="text-lg font-bold text-white">添加客户</h3><button onclick="closeCustomerModal()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:text-white transition-colors" style="color:var(--t3)" aria-label="关闭"><i class="fa-solid fa-xmark"></i></button></div>
+        <form id="customerForm" class="p-6 space-y-4" onsubmit="saveCustomer(event)">
+            <input type="hidden" id="formId">
+            <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:var(--t3)"><i class="fa-solid fa-building mr-1"></i> 公司信息</div>
+            <div><label class="block text-xs font-medium mb-1.5" style="color:var(--t2)">公司名称 <span style="color:var(--dg)">*</span></label><input id="formCompany" type="text" required class="fi" style="padding:10px 12px" placeholder="请输入公司名称"></div>
+            <div class="grid grid-cols-3 gap-3">
+                <div><label class="block text-xs font-medium mb-1.5" style="color:var(--t2)">行业</label><select id="formIndustry" class="fi fi-select"><option value="互联网">互联网</option><option value="金融">金融</option><option value="制造">制造</option><option value="教育">教育</option><option value="医疗">医疗</option><option value="房地产">房地产</option><option value="零售">零售</option><option value="其他">其他</option></select></div>
+                <div><label class="block text-xs font-medium mb-1.5" style="color:var(--t2)">客户等级</label><select id="formLevel" class="fi fi-select"><option value="B">B级 · 一般</option><option value="A">A级 · 重要</option><option value="C">C级 · 潜在</option><option value="D">D级 · 休眠</option></select></div>
+                <div><label class="block text-xs font-medium mb-1.5" style="color:var(--t2)">来源</label><select id="formSource" class="fi fi-select"><option value="主动开发">主动开发</option><option value="官网咨询">官网咨询</option><option value="转介绍">转介绍</option><option value="展会活动">展会活动</option><option value="其他">其他</option></select></div>
+            </div>
+            <div><label class="block text-xs font-medium mb-1.5" style="color:var(--t2)">地址</label><input id="formAddress" type="text" class="fi" placeholder="选填"></div>
+            <div><label class="block text-xs font-medium mb-1.5" style="color:var(--t2)">备注</label><textarea id="formRemark" rows="2" class="fi resize-none" placeholder="选填"></textarea></div>
+            <div class="border-t pt-4 mt-2" style="border-color:var(--bd)"><div class="text-xs font-semibold uppercase tracking-wider mb-3" style="color:var(--t3)"><i class="fa-solid fa-user-tie mr-1"></i> 主联系人信息</div></div>
+            <div class="grid grid-cols-2 gap-3">
+                <div><label class="block text-xs font-medium mb-1.5" style="color:var(--t2)">联系人姓名 <span style="color:var(--dg)">*</span></label><input id="formCtName" type="text" required class="fi" placeholder="请输入姓名"></div>
+                <div><label class="block text-xs font-medium mb-1.5" style="color:var(--t2)">联系电话 <span style="color:var(--dg)">*</span></label><input id="formCtPhone" type="tel" required class="fi" placeholder="请输入电话"></div>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+                <div><label class="block text-xs font-medium mb-1.5" style="color:var(--t2)">部门</label><input id="formCtDept" type="text" class="fi" placeholder="如：技术部"></div>
+                <div><label class="block text-xs font-medium mb-1.5" style="color:var(--t2)">职位</label><input id="formCtPos" type="text" class="fi" placeholder="如：总监"></div>
+                <div><label class="block text-xs font-medium mb-1.5" style="color:var(--t2)">邮箱</label><input id="formCtEmail" type="email" class="fi" placeholder="选填"></div>
+            </div>
+            <div><label class="block text-xs font-medium mb-1.5" style="color:var(--t2)">研究方向 / 负责领域</label><input id="formCtResearch" type="text" class="fi" placeholder="如：人工智能、供应链管理"></div>
+            <p class="text-xs" style="color:var(--t3)"><i class="fa-solid fa-circle-info mr-1"></i>更多联系人可在保存后进入详情页添加</p>
+            <div class="flex justify-end gap-3 pt-2">
+                <button type="button" onclick="closeCustomerModal()" class="px-5 py-2.5 rounded-lg text-sm font-medium hover:text-white transition-colors" style="color:var(--t2)">取消</button>
+                <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-black transition-colors" style="background:var(--ac)">保存</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 修改密码模态框 -->
+<div id="changePwdModal" class="fixed inset-0 z-[60] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="absolute inset-0 bg-black/60" onclick="closeChangePwdModal()"></div>
+    <div class="relative bg-[--bg-s] border rounded-2xl w-full max-w-md mx-4 transform scale-95" id="cpBox" style="border-color:var(--bd);box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+        <div class="px-6 py-5 border-b flex items-center justify-between" style="border-color:var(--bd)"><h3 class="text-lg font-bold text-white">修改密码</h3><button onclick="closeChangePwdModal()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:text-white transition-colors" style="color:var(--t3)" aria-label="关闭"><i class="fa-solid fa-xmark"></i></button></div>
+        <form id="changePwdForm" onsubmit="handleChangePwd(event)" class="p-6 space-y-4">
+            <div><label class="block text-xs font-medium mb-1.5" style="color:var(--t2)">当前密码 <span style="color:var(--dg)">*</span></label><input id="pwdOld" type="password" required class="fi" style="padding:10px 12px" placeholder="请输入当前密码"></div>
+            <div><label class="block text-xs font-medium mb-1.5" style="color:var(--t2)">新密码 <span style="color:var(--dg)">*</span></label><input id="pwdNew" type="password" required minlength="4" class="fi" style="padding:10px 12px" placeholder="至少4个字符"></div>
+            <div><label class="block text-xs font-medium mb-1.5" style="color:var(--t2)">确认新密码 <span style="color:var(--dg)">*</span></label><input id="pwdConfirm" type="password" required class="fi" style="padding:10px 12px" placeholder="请再次输入新密码"></div>
+            <div id="pwdError" class="text-sm min-h-[20px]" style="color:#fca5a5">&nbsp;</div>
+            <div class="flex justify-end gap-3 pt-1">
+                <button type="button" onclick="closeChangePwdModal()" class="px-5 py-2.5 rounded-lg text-sm font-medium hover:text-white transition-colors" style="color:var(--t2)">取消</button>
+                <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-black transition-colors" style="background:var(--ac)">确认修改</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+/* ================================================================
+   登录安全
+================================================================ */
+const AK='crm_auth_token',PK='crm_password_hash',DEFAULT_PWD='admin123';
+function sHash(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;}return 'h_'+Math.abs(h).toString(36)+'_'+s.length;}
+function gPwdHash(){return localStorage.getItem(PK)||sHash(DEFAULT_PWD);}
+function checkSess(){return sessionStorage.getItem(AK)==='yes';}
+function handleLogin(e){
+    e.preventDefault();const u=document.getElementById('loginUser').value.trim(),p=document.getElementById('loginPwd').value,er=document.getElementById('loginError'),ui=document.getElementById('loginUser'),pi=document.getElementById('loginPwd');
+    ui.classList.remove('err');pi.classList.remove('err');
+    if(!u||!p){er.textContent='请输入账号和密码';if(!u)ui.classList.add('err');if(!p)pi.classList.add('err');return;}
+    if(u!=='admin'){er.textContent='账号不存在';ui.classList.add('err');return;}
+    if(sHash(p)!==gPwdHash()){er.textContent='密码错误，请重试';pi.classList.add('err');pi.value='';pi.focus();return;}
+    sessionStorage.setItem(AK,'yes');er.innerHTML='&nbsp;';enterSys();
+}
+function handleLogout(){sessionStorage.removeItem(AK);document.getElementById('mainSystem').classList.remove('active');document.getElementById('mainSystem').style.display='none';document.getElementById('loginPage').classList.remove('hidden');document.getElementById('loginPwd').value='';document.getElementById('loginError').innerHTML='&nbsp;';document.getElementById('loginUser').classList.remove('err');document.getElementById('loginPwd').classList.remove('err');document.getElementById('loginUser').focus();closePanel();closeCustomerModal();closeChangePwdModal();}
+function enterSys(){document.getElementById('loginPage').classList.add('hidden');document.getElementById('mainSystem').style.display='flex';document.getElementById('mainSystem').classList.add('active');loadData();renderAll();}
+function togglePwdVis(id,btn){const i=document.getElementById(id),ic=btn.querySelector('i');if(i.type==='password'){i.type='text';ic.className='fa-solid fa-eye-slash';}else{i.type='password';ic.className='fa-solid fa-eye';}}
+function openChangePwdModal(){document.getElementById('changePwdForm').reset();document.getElementById('pwdError').innerHTML='&nbsp;';document.getElementById('changePwdModal').classList.add('active');}
+function closeChangePwdModal(){document.getElementById('changePwdModal').classList.remove('active');}
+function handleChangePwd(e){
+    e.preventDefault();const o=document.getElementById('pwdOld').value,n=document.getElementById('pwdNew').value,c=document.getElementById('pwdConfirm').value,er=document.getElementById('pwdError');
+    if(sHash(o)!==gPwdHash()){er.textContent='当前密码不正确';return;}if(n.length<4){er.textContent='新密码至少需要4个字符';return;}if(n!==c){er.textContent='两次输入的新密码不一致';return;}if(sHash(n)===gPwdHash()){er.textContent='新密码不能与当前密码相同';return;}
+    localStorage.setItem(PK,sHash(n));closeChangePwdModal();showToast('密码修改成功，下次登录时生效','success');
+}
+
+/* ================================================================
+   数据层
+================================================================ */
+const DC=[
+    {id:1,company:'杭州星辰科技有限公司',industry:'互联网',level:'A',source:'展会活动',address:'杭州市西湖区文三路478号',remark:'核心客户，年预算约200万，数字化转型项目',createdAt:'2024-09-15',updatedAt:'2025-01-08',contacts:[
+        {id:1,name:'张伟',department:'技术中心',position:'CTO',research:'数字化转型 / 人工智能',phone:'138-0001-2345',email:'zhangwei@xingchen.com',isMain:true},
+        {id:2,name:'陈思远',department:'产品部',position:'产品总监',research:'产品规划 / 用户体验',phone:'138-0001-2346',email:'chensiyuan@xingchen.com',isMain:false},
+        {id:3,name:'赵婷婷',department:'财务部',position:'财务经理',research:'预算管理 / 合同审批',phone:'138-0001-2347',email:'zhaott@xingchen.com',isMain:false}
+    ]},
+    {id:2,company:'上海鼎盛金融集团',industry:'金融',level:'A',source:'转介绍',address:'上海市浦东新区陆家嘴环路1000号',remark:'由老客户李总介绍，风控系统升级需求',createdAt:'2024-10-20',updatedAt:'2025-01-05',contacts:[
+        {id:4,name:'王芳',department:'风控部',position:'风控总监',research:'风险建模 / 实时风控',phone:'139-0012-3456',email:'wangfang@dingsheng.cn',isMain:true},
+        {id:5,name:'刘国强',department:'IT部',position:'技术副总',research:'系统架构 / 信息安全',phone:'139-0012-3457',email:'liugq@dingsheng.cn',isMain:false}
+    ]},
+    {id:3,company:'深圳智能制造有限公司',industry:'制造',level:'B',source:'主动开发',address:'深圳市南山区科技园南路88号',remark:'MES系统需求，预算待定',createdAt:'2024-11-05',updatedAt:'2024-12-28',contacts:[
+        {id:6,name:'刘强',department:'生产管理部',position:'生产总监',research:'精益生产 / MES系统',phone:'136-0023-4567',email:'liuqiang@smartmfg.com',isMain:true}
+    ]},
+    {id:4,company:'北京启航教育科技',industry:'教育',level:'B',source:'官网咨询',address:'北京市海淀区中关村大街36号',remark:'在线教育平台定制开发',createdAt:'2024-11-18',updatedAt:'2024-12-20',contacts:[
+        {id:7,name:'陈静',department:'教务处',position:'教务主任',research:'在线教学 / 题库系统',phone:'135-0034-5678',email:'chenjing@qihang.edu',isMain:true}
+    ]},
+    {id:5,company:'广州仁和医疗集团',industry:'医疗',level:'A',source:'展会活动',address:'广州市天河区珠江新城华夏路28号',remark:'HIS系统升级，含AI辅助诊断模块',createdAt:'2024-08-22',updatedAt:'2025-01-10',contacts:[
+        {id:8,name:'赵鹏',department:'信息科',position:'信息科主任',research:'HIS系统 / 医疗信息化',phone:'137-0045-6789',email:'zhaopeng@renhe.med',isMain:true},
+        {id:9,name:'孙明华',department:'放射科',position:'科室主任',research:'AI辅助诊断 / 影像分析',phone:'137-0045-6790',email:'sunmh@renhe.med',isMain:false},
+        {id:10,name:'周丽萍',department:'采购中心',position:'采购经理',research:'医疗设备采购',phone:'137-0045-6791',email:'zhoulp@renhe.med',isMain:false}
+    ]},
+    {id:6,company:'成都万达地产开发',industry:'房地产',level:'C',source:'主动开发',address:'成都市锦江区红星路三段1号',remark:'智慧物业管理系统初步沟通',createdAt:'2024-12-01',updatedAt:'2024-12-15',contacts:[
+        {id:11,name:'孙丽',department:'物业管理中心',position:'物业总监',research:'智慧物业 / 物联网',phone:'133-0056-7890',email:'sunli@wanda.re',isMain:true}
+    ]},
+    {id:7,company:'武汉光谷新零售科技',industry:'零售',level:'B',source:'转介绍',address:'武汉市东湖高新区光谷大道77号',remark:'全渠道零售SaaS系统需求',createdAt:'2024-10-08',updatedAt:'2025-01-02',contacts:[
+        {id:12,name:'周磊',department:'技术部',position:'技术负责人',research:'全渠道零售 / 供应链',phone:'131-0067-8901',email:'zhoulei@ggzls.com',isMain:true}
+    ]},
+    {id:8,company:'南京博远网络技术',industry:'互联网',level:'C',source:'官网咨询',address:'南京市雨花台区软件大道168号',remark:'小程序开发需求，预算较小',createdAt:'2024-12-10',updatedAt:'2024-12-18',contacts:[
+        {id:13,name:'吴敏',department:'运营部',position:'运营经理',research:'小程序运营 / 用户增长',phone:'130-0078-9012',email:'wumin@boyuan.net',isMain:true}
+    ]},
+    {id:9,company:'重庆重工业集团',industry:'制造',level:'D',source:'其他',address:'重庆市九龙坡区杨家坪步行街18号',remark:'去年询过价，项目搁置',createdAt:'2024-03-15',updatedAt:'2024-06-20',contacts:[
+        {id:14,name:'郑浩',department:'设备管理部',position:'设备科长',research:'设备维护 / 工业自动化',phone:'132-0089-0123',email:'zhenghao@cqheavy.com',isMain:true}
+    ]},
+    {id:10,company:'厦门海洋食品有限公司',industry:'零售',level:'B',source:'展会活动',address:'厦门市思明区环岛路168号',remark:'供应链管理系统，冷链物流追踪',createdAt:'2024-11-25',updatedAt:'2025-01-06',contacts:[
+        {id:15,name:'林雪',department:'供应链中心',position:'供应链总监',research:'冷链物流 / 仓储管理',phone:'158-0090-1234',email:'linxue@oceanfood.com',isMain:true},
+        {id:16,name:'黄志强',department:'品控部',position:'品控经理',research:'食品溯源 / 质量管理',phone:'158-0090-1235',email:'huangzq@oceanfood.com',isMain:false}
+    ]}
+];
+const DF=[
+    {id:1,customerId:1,date:'2025-01-08',method:'上门拜访',content:'与张总详细沟通了2025年数字化转型方案，对方对智能客服模块非常感兴趣',nextPlan:'下周三前发送详细报价方案',status:'方案报价',follower:'李明'},
+    {id:2,customerId:1,date:'2024-12-20',method:'电话',content:'电话确认年终总结会议时间，张总表示年后启动数字化项目，预算已获批',nextPlan:'预约1月初上门拜访',status:'需求沟通',follower:'李明'},
+    {id:3,customerId:2,date:'2025-01-05',method:'上门拜访',content:'拜访鼎盛金融IT部刘总，详细演示风控系统v3.0，效果满意',nextPlan:'准备商务报价',status:'合同签订',follower:'王芳'},
+    {id:4,customerId:2,date:'2024-12-10',method:'电话',content:'沟通演示时间，确认12月底前安排产品演示',nextPlan:'准备演示环境',status:'方案报价',follower:'王芳'},
+    {id:5,customerId:3,date:'2024-12-28',method:'电话',content:'刘总表示MES系统需求还在内部评估，预计春节后会有明确方向',nextPlan:'春节后跟进',status:'需求沟通',follower:'张伟'},
+    {id:6,customerId:4,date:'2024-12-20',method:'邮件',content:'发送在线教育平台方案书，包含技术架构和报价',nextPlan:'等待评审反馈',status:'方案报价',follower:'赵静'},
+    {id:7,customerId:5,date:'2025-01-10',method:'上门拜访',content:'与仁和医疗信息科赵主任、放射科孙主任联合对接，确认AI辅助诊断模块技术参数',nextPlan:'完成接口文档交付',status:'执行中',follower:'李明'},
+    {id:8,customerId:5,date:'2024-12-25',method:'电话',content:'合同已签署，确认项目启动会和交付计划',nextPlan:'安排项目启动会',status:'合同签订',follower:'李明'},
+    {id:9,customerId:6,date:'2024-12-15',method:'电话',content:'孙经理表示智慧物业项目暂时搁置，今年预算已用完',nextPlan:'明年Q1再联系',status:'暂缓',follower:'张伟'},
+    {id:10,customerId:7,date:'2025-01-02',method:'微信',content:'周磊反馈内部评审已通过，要求安排产品演示',nextPlan:'预约线上演示',status:'方案报价',follower:'王芳'},
+    {id:11,customerId:8,date:'2024-12-18',method:'电话',content:'吴敏表示小程序开发暂时搁置，公司战略调整中',nextPlan:'一个月后再联系',status:'暂缓',follower:'赵静'},
+    {id:12,customerId:10,date:'2025-01-06',method:'上门拜访',content:'实地考察冷链仓库，与林雪、黄志强分别了解温控监控和品控溯源需求',nextPlan:'出技术方案',status:'需求沟通',follower:'李明'}
+];
+
+const SKC='crm_customers',SKF='crm_follows';
+let customers=[],followRecords=[];
+let nextCId=1,nextFId=1,nextCtId=20;
+let curSort={field:'updatedAt',order:'desc'};
+let selCId=null,activeTab='info',delCId=null,fFormOpen=false,ctFormMode=null;
+
+/* 联系人辅助函数 */
+function getMain(c){if(!c.contacts||!c.contacts.length)return null;return c.contacts.find(x=>x.isMain)||c.contacts[0];}
+function ctDisplay(c){const m=getMain(c);if(!m)return{name:'-',phone:'-',dept:'',pos:''};return{name:m.name,phone:m.phone||'-',dept:m.department||'',pos:m.position||''};}
+function ctCount(c){return c.contacts?c.contacts.length:0;}
+
+/* 向后兼容迁移 */
+function migrate(c){
+    if(c.contacts&&c.contacts.length)return c;
+    return{...c,contacts:[{id:nextCtId++,name:c.name||'未设置',department:'',position:'',research:'',phone:c.phone||'',email:c.email||'',isMain:true}]};
+}
+
+function loadData(){
+    try{const c=localStorage.getItem(SKC),f=localStorage.getItem(SKF);
+        if(c&&f){customers=JSON.parse(c).map(migrate);followRecords=JSON.parse(f);}
+        else{customers=JSON.parse(JSON.stringify(DC));followRecords=JSON.parse(JSON.stringify(DF));saveData();}
+    }catch(e){customers=JSON.parse(JSON.stringify(DC)).map(migrate);followRecords=JSON.parse(JSON.stringify(DF));}
+    nextCId=customers.reduce((m,c)=>Math.max(m,c.id),0)+1;
+    nextFId=followRecords.reduce((m,f)=>Math.max(m,f.id),0)+1;
+    nextCtId=customers.reduce((m,c)=>{const mx=c.contacts?c.contacts.reduce((mm,ct)=>Math.max(mm,ct.id),0):0;return Math.max(m,mx);},0)+1;
+}
+function saveData(){try{localStorage.setItem(SKC,JSON.stringify(customers));localStorage.setItem(SKF,JSON.stringify(followRecords));}catch(e){showToast('保存失败，存储空间可能已满','danger');}}
+
+/* 导入导出 */
+function exportData(){const d={_type:'crm_backup',_version:2,_time:new Date().toISOString(),customers,followRecords};const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`客户数据备份_${new Date().toLocaleDateString('zh-CN').replace(/\//g,'-')}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);showToast('数据已导出','success');}
+function importData(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=function(e){try{const d=JSON.parse(e.target.result);if(!d.customers||!d.followRecords){showToast('文件格式不正确','danger');return;}customers=d.customers.map(migrate);followRecords=d.followRecords;nextCId=customers.reduce((m,c)=>Math.max(m,c.id),0)+1;nextFId=followRecords.reduce((m,f)=>Math.max(m,f.id),0)+1;nextCtId=customers.reduce((m,c)=>{const mx=c.contacts?c.contacts.reduce((mm,ct)=>Math.max(mm,ct.id),0):0;return Math.max(m,mx);},0)+1;saveData();closePanel();renderAll();showToast(`导入成功：${customers.length} 个客户、${followRecords.length} 条跟进`,'success');}catch(err){showToast('文件解析失败','danger');}};r.readAsText(f);ev.target.value='';}
+
+/* 工具函数 */
+function getLF(cid){const l=followRecords.filter(f=>f.customerId===cid);return l.length?l.sort((a,b)=>b.date.localeCompare(a.date))[0]:null;}
+function getCS(cid){const l=getLF(cid);return l?l.status:'未跟进';}
+function lw(lv){return{A:1,B:2,C:3,D:4}[lv]||5;}
+function sw(st){return{'需求沟通':1,'方案报价':2,'合同签订':3,'执行中':4,'已完成':5,'暂缓':6,'未跟进':7}[st]||8;}
+function mi(m){return{'电话':'fa-phone','上门拜访':'fa-building','邮件':'fa-envelope','微信':'fa-comment-dots'}[m]||'fa-circle';}
+function td(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+
+/* ================================================================
+   渲染
+================================================================ */
+function renderStats(){
+    const t=customers.length,aC=customers.filter(c=>c.level==='A').length;
+    const acC=customers.filter(c=>{const s=getCS(c.id);return!['已完成','暂缓','未跟进'].includes(s);}).length;
+    const tm=`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+    const mn=customers.filter(c=>c.createdAt.startsWith(tm)).length;
+    document.getElementById('statsBar').innerHTML=`
+        <div class="sc bg-[--bg-s] border rounded-xl px-4 py-3 min-w-[88px]" style="border-color:var(--bd)"><div class="text-[10px] uppercase tracking-wider mb-1" style="color:var(--t3)">全部</div><div class="text-xl font-bold text-white">${t}</div></div>
+        <div class="sc bg-[--bg-s] border rounded-xl px-4 py-3 min-w-[88px]" style="border-color:var(--bd)"><div class="text-[10px] uppercase tracking-wider mb-1" style="color:var(--t3)">A级</div><div class="text-xl font-bold text-amber-400">${aC}</div></div>
+        <div class="sc bg-[--bg-s] border rounded-xl px-4 py-3 min-w-[88px]" style="border-color:var(--bd)"><div class="text-[10px] uppercase tracking-wider mb-1" style="color:var(--t3)">跟进中</div><div class="text-xl font-bold text-cyan-400">${acC}</div></div>
+        <div class="sc bg-[--bg-s] border rounded-xl px-4 py-3 min-w-[88px]" style="border-color:var(--bd)"><div class="text-[10px] uppercase tracking-wider mb-1" style="color:var(--t3)">本月新增</div><div class="text-xl font-bold text-emerald-400">${mn}</div></div>`;
+}
+
+function renderTable(){
+    const search=document.getElementById('searchInput').value.trim().toLowerCase();
+    const fL=document.getElementById('filterLevel').value,fI=document.getElementById('filterIndustry').value,fS=document.getElementById('filterStatus').value;
+    let list=customers.filter(c=>{
+        if(search){
+            const cd=ctDisplay(c);
+            const ctNames=(c.contacts||[]).map(ct=>ct.name).join(' ').toLowerCase();
+            const ctPhones=(c.contacts||[]).map(ct=>ct.phone).join(' ').toLowerCase();
+            if(!c.company.toLowerCase().includes(search)&&!ctNames.includes(search)&&!ctPhones.includes(search))return false;
+        }
+        if(fL&&c.level!==fL)return false;if(fI&&c.industry!==fI)return false;if(fS&&getCS(c.id)!==fS)return false;return true;
+    });
+    const{field,order}=curSort;
+    list.sort((a,b)=>{
+        let va,vb;
+        if(field==='name'){va=a.company;vb=b.company;}else if(field==='level'){va=lw(a.level);vb=lw(b.level);}
+        else if(field==='status'){va=sw(getCS(a.id));vb=sw(getCS(b.id));}else{va=a.updatedAt;vb=b.updatedAt;}
+        let cmp=typeof va==='number'?va-vb:String(va).localeCompare(String(vb));return order==='asc'?cmp:-cmp;
+    });
+    ['name','level','status','updatedAt'].forEach(f=>{const ic=document.getElementById('si-'+f);if(!ic)return;ic.className=f===field?(order==='asc'?'fa-solid fa-sort-up ml-1 opacity-80 text-[10px] text-[--ac]':'fa-solid fa-sort-down ml-1 opacity-80 text-[10px] text-[--ac]'):'fa-solid fa-sort ml-1 opacity-40 text-[10px]';});
+    const tb=document.getElementById('tableBody'),em=document.getElementById('emptyState');
+    if(!list.length){tb.innerHTML='';em.classList.remove('hidden');document.getElementById('tableFooter').innerHTML='';return;}
+    em.classList.add('hidden');
+    tb.innerHTML=list.map(c=>{
+        const st=getCS(c.id),lf=getLF(c.id),isD=delCId===c.id,cd=ctDisplay(c),cnt=ctCount(c);
+        const cntBadge=cnt>1?`<span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ml-1.5" style="background:var(--ac-m);color:var(--ac)">${cnt}</span>`:'';
+        return`<tr class="tr border-b last:border-b-0 cursor-pointer" style="border-color:var(--bd)" ondblclick="openPanel(${c.id})">
+            <td class="px-5 py-3.5" onclick="openPanel(${c.id})"><div class="text-sm font-medium text-white truncate max-w-[200px]">${c.company}</div><div class="text-xs mt-0.5" style="color:var(--t3)">${cd.dept?cd.dept+' · ':''}${cd.pos||''}</div></td>
+            <td class="px-5 py-3.5 text-sm" style="color:var(--t2)">${c.industry}</td>
+            <td class="px-5 py-3.5"><span class="tag tag-${c.level.toLowerCase()}">${c.level}级</span></td>
+            <td class="px-5 py-3.5"><span class="text-sm" style="color:var(--t1)">${cd.name}</span>${cntBadge}<div class="text-xs mt-0.5 font-mono" style="color:var(--t3)">${cd.phone}</div></td>
+            <td class="px-5 py-3.5"><span class="tag tag-${st}">${st}</span></td>
+            <td class="px-5 py-3.5 text-sm" style="color:var(--t3)">${lf?lf.date:'-'}</td>
+            <td class="px-5 py-3.5 text-right" onclick="event.stopPropagation()">${isD?`<span class="cbar">确认删除？<button onclick="deleteCustomer(${c.id})" style="color:var(--dg)" class="font-semibold hover:underline bg-transparent border-none cursor-pointer text-[13px]">删除</button><button onclick="cancelDel()" class="hover:text-white bg-transparent border-none cursor-pointer text-[13px]" style="color:var(--t2)">取消</button></span>`:`<button class="ab" onclick="openPanel(${c.id})" title="查看"><i class="fa-solid fa-eye"></i></button><button class="ab" onclick="openCustomerModal(${c.id})" title="编辑"><i class="fa-solid fa-pen-to-square"></i></button><button class="ab dg" onclick="confirmDel(${c.id})" title="删除"><i class="fa-solid fa-trash-can"></i></button>`}</td></tr>`;
+    }).join('');
+    document.getElementById('tableFooter').innerHTML=`<span>共 ${list.length} 条记录</span><span>双击行查看详情</span>`;
+}
+
+/* 详情面板 - 客户资料 */
+function renderInfoTab(){
+    const c=customers.find(x=>x.id===selCId);if(!c)return;
+    document.getElementById('panelTitle').textContent=c.company;
+    const contacts=c.contacts||[];
+
+    /* 联系人列表 */
+    let ctHTML='';
+    contacts.forEach((ct,i)=>{
+        const isM=ct.isMain;
+        const deptPos=[ct.department,ct.position].filter(Boolean).join(' · ');
+        ctHTML+=`<div class="ct-card ${isM?'main':''} mb-3 group">
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3 flex-1 min-w-0">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5" style="background:${isM?'var(--ac-m)':'var(--bg-e)'};color:${isM?'var(--ac)':'var(--t2)'}">${ct.name[0]}</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-sm font-semibold text-white">${ct.name}</span>
+                            ${isM?'<span class="ct-star"><i class="fa-solid fa-star"></i> 主联系人</span>':''}
+                        </div>
+                        ${deptPos?`<div class="text-xs mt-0.5" style="color:var(--t2)">${deptPos}</div>`:''}
+                        ${ct.research?`<div class="text-xs mt-1 px-2 py-0.5 rounded inline-block" style="background:var(--bg-e);color:var(--t3)">${ct.research}</div>`:''}
+                        <div class="flex items-center gap-4 mt-1.5 text-xs" style="color:var(--t3)">
+                            ${ct.phone?`<span><i class="fa-solid fa-phone text-[10px] mr-1"></i>${ct.phone}</span>`:''}
+                            ${ct.email?`<span class="truncate"><i class="fa-solid fa-envelope text-[10px] mr-1"></i>${ct.email}</span>`:''}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                    ${!isM&&contacts.length>1?`<button class="ab sm" onclick="setMainContact(${ct.id})" title="设为主联系人"><i class="fa-solid fa-star"></i></button>`:''}
+                    <button class="ab sm" onclick="editContact(${ct.id})" title="编辑"><i class="fa-solid fa-pen"></i></button>
+                    <button class="ab sm dg" onclick="deleteContact(${ct.id})" title="删除"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+            </div>
+        </div>`;
+    });
+
+    /* 联系人表单 */
+    let formHTML='';
+    if(ctFormMode){
+        const isEdit=ctFormMode!=='add';
+        const ct=isEdit?(contacts.find(x=>x.id===ctFormMode)||{}):{};
+        formHTML=`<div class="ffw open"><div class="ct-card" style="border-color:var(--ac);border-style:dashed">
+            <div class="text-sm font-semibold text-white mb-3">${isEdit?'编辑联系人':'添加新联系人'}</div>
+            <div class="grid grid-cols-2 gap-2 mb-2">
+                <input id="ctFName" type="text" class="fi" placeholder="姓名 *" value="${ct.name||''}">
+                <input id="ctFPhone" type="tel" class="fi" placeholder="电话 *" value="${ct.phone||''}">
+            </div>
+            <div class="grid grid-cols-3 gap-2 mb-2">
+                <input id="ctFDept" type="text" class="fi" placeholder="部门" value="${ct.department||''}">
+                <input id="ctFPos" type="text" class="fi" placeholder="职位" value="${ct.position||''}">
+                <input id="ctFEmail" type="email" class="fi" placeholder="邮箱" value="${ct.email||''}">
+            </div>
+            <input id="ctFResearch" type="text" class="fi mb-3" placeholder="研究方向 / 负责领域" value="${ct.research||''}">
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="cancelCtForm()" class="px-4 py-1.5 rounded-lg text-xs hover:text-white transition-colors" style="color:var(--t3)">取消</button>
+                <button type="button" onclick="saveContact()" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-black transition-colors" style="background:var(--ac)">保存</button>
+            </div>
+        </div></div>`;
+    }
+
+    document.getElementById('infoContent').innerHTML=`
+        <div class="flex items-center justify-between mb-4">
+            <div class="text-xs font-semibold uppercase tracking-wider" style="color:var(--t3)"><i class="fa-solid fa-users mr-1"></i> 联系人 (${contacts.length}人)</div>
+            ${!ctFormMode?`<button onclick="addContact()" class="text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors" style="border-color:var(--bd);color:var(--t2)" onmouseover="this.style.borderColor='var(--ac)';this.style.color='var(--ac)'" onmouseout="this.style.borderColor='var(--bd)';this.style.color='var(--t2)'"><i class="fa-solid fa-plus mr-1"></i>添加</button>`:''}
+        </div>
+        ${ctHTML}
+        ${formHTML}
+        <div class="mt-6">
+            <div class="text-xs font-semibold uppercase tracking-wider mb-3" style="color:var(--t3)"><i class="fa-solid fa-building mr-1"></i> 公司信息</div>
+            <div class="bg-[--bg-t] rounded-xl p-5">
+                <div class="ir"><span class="il">行业</span><span class="iv">${c.industry}</span></div>
+                <div class="ir"><span class="il">等级</span><span class="iv"><span class="tag tag-${c.level.toLowerCase()}">${c.level}级</span></span></div>
+                <div class="ir"><span class="il">来源</span><span class="iv">${c.source}</span></div>
+                <div class="ir"><span class="il">地址</span><span class="iv">${c.address||'-'}</span></div>
+                <div class="ir"><span class="il">备注</span><span class="iv" style="text-align:left;max-width:280px">${c.remark||'暂无备注'}</span></div>
+                <div class="ir"><span class="il">创建</span><span class="iv" style="color:var(--t3)">${c.createdAt}</span></div>
+                <div class="ir"><span class="il">更新</span><span class="iv" style="color:var(--t3)">${c.updatedAt}</span></div>
+            </div>
+        </div>
+        <button onclick="openCustomerModal(${c.id})" class="w-full mt-4 py-2.5 rounded-lg text-sm font-medium border transition-all flex items-center justify-center gap-2" style="border-color:var(--bd);color:var(--t2)" onmouseover="this.style.borderColor='var(--ac)';this.style.color='var(--t1)';this.style.background='var(--ac-m)'" onmouseout="this.style.borderColor='var(--bd)';this.style.color='var(--t2)';this.style.background='transparent'"><i class="fa-solid fa-pen-to-square text-xs"></i> 编辑公司信息</button>`;
+}
+
+/* 联系人表单操作 */
+function addContact(){ctFormMode='add';renderInfoTab();setTimeout(()=>{const el=document.getElementById('infoContent');if(el)el.scrollTop=0;},50);}
+function editContact(ctId){ctFormMode=ctId;renderInfoTab();setTimeout(()=>{const el=document.getElementById('infoContent');if(el)el.scrollTop=0;},50);}
+function cancelCtForm(){ctFormMode=null;renderInfoTab();}
+function saveContact(){
+    const c=customers.find(x=>x.id===selCId);if(!c)return;
+    const name=document.getElementById('ctFName').value.trim();
+    const phone=document.getElementById('ctFPhone').value.trim();
+    if(!name||!phone){showToast('联系人姓名和电话为必填','warning');return;}
+    const data={name,phone,department:document.getElementById('ctFDept').value.trim(),position:document.getElementById('ctFPos').value.trim(),email:document.getElementById('ctFEmail').value.trim(),research:document.getElementById('ctFResearch').value.trim()};
+
+    if(ctFormMode==='add'){
+        data.id=nextCtId++;
+        data.isMain=!c.contacts||!c.contacts.length;
+        if(!c.contacts)c.contacts=[];
+        c.contacts.push(data);
+        showToast('联系人已添加','success');
+    } else {
+        const ct=c.contacts.find(x=>x.id===ctFormMode);
+        if(ct){Object.assign(ct,data);showToast('联系人已更新','success');}
+    }
+    c.updatedAt=td();ctFormMode=null;saveData();renderInfoTab();renderTable();renderStats();
+}
+function deleteContact(ctId){
+    const c=customers.find(x=>x.id===selCId);if(!c)return;
+    if(!c.contacts||c.contacts.length<=1){showToast('至少保留一个联系人','warning');return;}
+    const wasMain=c.contacts.find(x=>x.id===ctId)?.isMain;
+    c.contacts=c.contacts.filter(x=>x.id!==ctId);
+    if(wasMain&&c.contacts.length)c.contacts[0].isMain=true;
+    c.updatedAt=td();saveData();showToast('联系人已删除','danger');renderInfoTab();renderTable();
+}
+function setMainContact(ctId){
+    const c=customers.find(x=>x.id===selCId);if(!c)return;
+    c.contacts.forEach(ct=>ct.isMain=ct.id===ctId);
+    c.updatedAt=td();saveData();showToast('已设为主联系人','success');renderInfoTab();renderTable();
+}
+
+/* 详情面板 - 项目跟进 */
+function renderFollowTab(){
+    const c=customers.find(x=>x.id===selCId);if(!c)return;
+    const recs=followRecords.filter(f=>f.customerId===c.id).sort((a,b)=>b.date.localeCompare(a.date));
+    const cs=getCS(c.id);
+    document.getElementById('currentStatus').innerHTML=`<div class="flex items-center gap-3"><span class="text-xs" style="color:var(--t3)">当前项目状态</span><span class="tag tag-${cs} text-sm px-3 py-1">${cs}</span></div>`;
+    if(!recs.length){document.getElementById('timeline').innerHTML=`<div class="text-center py-12"><i class="fa-regular fa-clipboard text-3xl mb-3 block" style="color:var(--t3)"></i><p class="text-sm" style="color:var(--t3)">暂无跟进记录</p></div>`;}
+    else{document.getElementById('timeline').innerHTML=`<div class="relative pl-8"><div class="tl-line"></div>${recs.map((r,i)=>`<div class="tl-item relative pb-6 last:pb-0 group" style="margin-left:-24px"><div class="flex items-start gap-3"><div class="tl-dot mt-1" style="${i===0?'border-color:var(--ac);background:var(--ac-m);':''}"></div><div class="flex-1 bg-[--bg-t] rounded-xl p-4 border border-transparent group-hover:border-[--bd-l] transition-colors"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2 text-xs" style="color:var(--t3)"><span class="font-mono">${r.date}</span><span class="inline-flex items-center gap-1"><i class="fa-solid ${mi(r.method)} text-[10px]"></i>${r.method}</span><span>· ${r.follower}</span></div><button onclick="deleteFR(${r.id})" class="opacity-0 group-hover:opacity-100 ab dg sm transition-opacity" title="删除"><i class="fa-solid fa-trash-can"></i></button></div><p class="text-sm leading-relaxed mb-2" style="color:var(--t1)">${r.content}</p>${r.nextPlan?`<div class="text-xs border-t pt-2 mt-1" style="color:var(--t3);border-color:var(--bd)"><i class="fa-solid fa-arrow-right text-[9px] mr-1" style="color:var(--ac)"></i>${r.nextPlan}</div>`:''}<div class="mt-2"><span class="tag tag-${r.status}">${r.status}</span></div></div></div></div>`).join('')}</div>`;}
+    document.getElementById('addFollowArea').innerHTML=!fFormOpen?`<button onclick="toggleFF(true)" class="w-full py-2.5 rounded-lg text-sm font-medium border border-dashed transition-all flex items-center justify-center gap-2" style="border-color:var(--bd);color:var(--t3)" onmouseover="this.style.borderColor='var(--ac)';this.style.color='var(--ac)'" onmouseout="this.style.borderColor='var(--bd)';this.style.color='var(--t3)'"><i class="fa-solid fa-plus text-xs"></i> 添加跟进记录</button>`:`<div class="ffw open"><div class="bg-[--bg-t] rounded-xl p-5 border" style="border-color:var(--bd)"><div class="text-sm font-semibold text-white mb-4">新增跟进记录</div><div class="space-y-3"><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs mb-1" style="color:var(--t3)">跟进日期</label><input id="fDate" type="date" value="${td()}" class="fi"></div><div><label class="block text-xs mb-1" style="color:var(--t3)">跟进方式</label><select id="fMethod" class="fi fi-select"><option value="电话">电话</option><option value="上门拜访">上门拜访</option><option value="邮件">邮件</option><option value="微信">微信</option></select></div></div><div><label class="block text-xs mb-1" style="color:var(--t3)">项目状态</label><select id="fStatus" class="fi fi-select"><option value="需求沟通">需求沟通</option><option value="方案报价">方案报价</option><option value="合同签订">合同签订</option><option value="执行中">执行中</option><option value="已完成">已完成</option><option value="暂缓">暂缓</option></select></div><div><label class="block text-xs mb-1" style="color:var(--t3)">跟进内容 <span style="color:var(--dg)">*</span></label><textarea id="fContent" rows="3" required class="fi resize-none" placeholder="请输入跟进内容"></textarea></div><div><label class="block text-xs mb-1" style="color:var(--t3)">下一步计划</label><input id="fNext" type="text" class="fi" placeholder="选填"></div><div><label class="block text-xs mb-1" style="color:var(--t3)">跟进人</label><input id="fFollower" type="text" value="我" class="fi"></div><div class="flex justify-end gap-2 pt-1"><button type="button" onclick="toggleFF(false)" class="px-4 py-2 rounded-lg text-sm hover:text-white transition-colors" style="color:var(--t3)">取消</button><button type="button" onclick="saveFR()" class="px-4 py-2 rounded-lg text-sm font-semibold text-black transition-colors" style="background:var(--ac)">保存</button></div></div></div></div>`;
+}
+
+function renderAll(){renderStats();renderTable();}
+
+/* 面板控制 */
+function openPanel(cid){selCId=cid;activeTab='info';fFormOpen=false;ctFormMode=null;document.getElementById('detailPanel').classList.add('open');document.getElementById('overlay').classList.add('active');updateTabs();renderInfoTab();renderFollowTab();}
+function closePanel(){selCId=null;ctFormMode=null;document.getElementById('detailPanel').classList.remove('open');document.getElementById('overlay').classList.remove('active');}
+function switchTab(tab){activeTab=tab;fFormOpen=false;ctFormMode=null;updateTabs();if(tab==='info'){document.getElementById('infoContent').classList.remove('hidden');document.getElementById('followContent').classList.add('hidden');renderInfoTab();}else{document.getElementById('infoContent').classList.add('hidden');document.getElementById('followContent').classList.remove('hidden');renderFollowTab();}}
+function updateTabs(){const ti=document.getElementById('tabInfo'),tf=document.getElementById('tabFollow');if(activeTab==='info'){ti.style.borderColor='var(--ac)';ti.style.color='var(--ac)';tf.style.borderColor='transparent';tf.style.color='var(--t3)';}else{tf.style.borderColor='var(--ac)';tf.style.color='var(--ac)';ti.style.borderColor='transparent';ti.style.color='var(--t3)';}}
+function toggleFF(open){fFormOpen=open;renderFollowTab();if(open)setTimeout(()=>{const el=document.getElementById('followContent');if(el)el.scrollTop=el.scrollHeight;},50);}
+
+/* 客户表单 */
+function openCustomerModal(cid){
+    document.getElementById('customerForm').reset();document.getElementById('formId').value='';
+    if(cid){
+        const c=customers.find(x=>x.id===cid);if(!c)return;
+        document.getElementById('modalTitle').textContent='编辑公司信息';
+        document.getElementById('formId').value=c.id;
+        document.getElementById('formCompany').value=c.company;
+        document.getElementById('formIndustry').value=c.industry;
+        document.getElementById('formLevel').value=c.level;
+        document.getElementById('formSource').value=c.source;
+        document.getElementById('formAddress').value=c.address||'';
+        document.getElementById('formRemark').value=c.remark||'';
+        /* 主联系人信息只读显示提示 */
+        const mc=getMain(c);
+        document.getElementById('formCtName').value=mc?mc.name:'';
+        document.getElementById('formCtPhone').value=mc?mc.phone:'';
+        document.getElementById('formCtDept').value=mc?mc.department||'':'';
+        document.getElementById('formCtPos').value=mc?mc.position||'':'';
+        document.getElementById('formCtEmail').value=mc?mc.email||'':'';
+        document.getElementById('formCtResearch').value=mc?mc.research||'':'';
+    } else {
+        document.getElementById('modalTitle').textContent='添加客户';
+    }
+    document.getElementById('customerModal').classList.add('active');
+}
+function closeCustomerModal(){document.getElementById('customerModal').classList.remove('active');}
+
+function saveCustomer(e){
+    e.preventDefault();const id=document.getElementById('formId').value;
+    const data={company:document.getElementById('formCompany').value.trim(),industry:document.getElementById('formIndustry').value,level:document.getElementById('formLevel').value,source:document.getElementById('formSource').value,address:document.getElementById('formAddress').value.trim(),remark:document.getElementById('formRemark').value.trim()};
+    const ctData={name:document.getElementById('formCtName').value.trim(),phone:document.getElementById('formCtPhone').value.trim(),department:document.getElementById('formCtDept').value.trim(),position:document.getElementById('formCtPos').value.trim(),email:document.getElementById('formCtEmail').value.trim(),research:document.getElementById('formCtResearch').value.trim()};
+
+    if(id){
+        const c=customers.find(x=>x.id===Number(id));
+        if(c){Object.assign(c,data);c.updatedAt=td();
+            /* 更新主联系人信息 */
+            const mc=getMain(c);
+            if(mc)Object.assign(mc,ctData);
+            showToast('公司信息已更新','success');
+            if(selCId===Number(id)){ctFormMode=null;renderInfoTab();renderFollowTab();}
+        }
+    } else {
+        const nc={id:nextCId++,...data,contacts:[{id:nextCtId++,...ctData,isMain:true}],createdAt:td(),updatedAt:td()};
+        customers.push(nc);showToast('客户添加成功','success');
+    }
+    saveData();closeCustomerModal();renderAll();
+}
+
+/* 删除 */
+function confirmDel(cid){delCId=cid;renderTable();}
+function cancelDel(){delCId=null;renderTable();}
+function deleteCustomer(cid){customers=customers.filter(c=>c.id!==cid);followRecords=followRecords.filter(f=>f.customerId!==cid);delCId=null;if(selCId===cid)closePanel();saveData();showToast('客户已删除','danger');renderAll();}
+
+/* 跟进记录 */
+function saveFR(){const content=document.getElementById('fContent').value.trim();if(!content){showToast('请填写跟进内容','warning');return;}const dv=document.getElementById('fDate').value||td();followRecords.push({id:nextFId++,customerId:selCId,date:dv,method:document.getElementById('fMethod').value,content,nextPlan:document.getElementById('fNext').value.trim(),status:document.getElementById('fStatus').value,follower:document.getElementById('fFollower').value.trim()||'我'});const c=customers.find(x=>x.id===selCId);if(c)c.updatedAt=dv;fFormOpen=false;saveData();showToast('跟进记录已添加','success');renderFollowTab();renderAll();}
+function deleteFR(fid){followRecords=followRecords.filter(f=>f.id!==fid);saveData();showToast('跟进记录已删除','danger');renderFollowTab();renderAll();}
+
+/* 排序 */
+function toggleSort(field){if(curSort.field===field)curSort.order=curSort.order==='asc'?'desc':'asc';else{curSort.field=field;curSort.order=field==='updatedAt'?'desc':'asc';}renderTable();}
+
+/* Toast */
+function showToast(msg,type){const ct=document.getElementById('toastContainer');const cls={success:'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',danger:'border-red-500/30 bg-red-500/10 text-red-400',warning:'border-amber-500/30 bg-amber-500/10 text-amber-400',info:'border-blue-500/30 bg-blue-500/10 text-blue-400'};const ics={success:'fa-circle-check',danger:'fa-circle-xmark',warning:'fa-triangle-exclamation',info:'fa-circle-info'};const el=document.createElement('div');el.className=`toast-item flex items-center gap-2.5 px-4 py-3 rounded-xl border text-sm font-medium ${cls[type]||cls.info}`;el.style.pointerEvents='auto';el.style.backdropFilter='blur(12px)';el.innerHTML=`<i class="fa-solid ${ics[type]||ics.info} text-sm"></i><span>${msg}</span>`;ct.appendChild(el);setTimeout(()=>{el.classList.add('out');setTimeout(()=>el.remove(),300);},2500);}
+
+/* 初始化 */
+function init(){
+    if(checkSess())enterSys();else document.getElementById('loginUser').focus();
+    document.getElementById('searchInput').addEventListener('input',renderTable);
+    document.getElementById('filterLevel').addEventListener('change',renderTable);
+    document.getElementById('filterIndustry').addEventListener('change',renderTable);
+    document.getElementById('filterStatus').addEventListener('change',renderTable);
+    document.addEventListener('keydown',(e)=>{
+        if(e.key==='Escape'){
+            if(document.getElementById('changePwdModal').classList.contains('active'))closeChangePwdModal();
+            else if(document.getElementById('customerModal').classList.contains('active'))closeCustomerModal();
+            else if(document.getElementById('detailPanel').classList.contains('open'))closePanel();
+        }
+    });
+    document.getElementById('loginUser').addEventListener('input',()=>{document.getElementById('loginUser').classList.remove('err');document.getElementById('loginError').innerHTML='&nbsp;';});
+    document.getElementById('loginPwd').addEventListener('input',()=>{document.getElementById('loginPwd').classList.remove('err');document.getElementById('loginError').innerHTML='&nbsp;';});
+}
+init();
+</script>
+</body>
+</html>
